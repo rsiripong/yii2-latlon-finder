@@ -1,6 +1,6 @@
 <?php
 
-namespace ibrarturi\latlngfinder;
+namespace rsiripong\latlngfinder;
 
 use yii\web\View;
 
@@ -18,11 +18,13 @@ class LatLngFinder extends \yii\base\Widget
      * @var string $latAttribute Latitude attribute id
      */
     public $latAttribute 	= null;
+    public $latAttributeID 	= null;
 
     /**
      * @var string $lngAttribute Longitude attribute id
      */
     public $lngAttribute 	= null;
+    public $lngAttributeID 	= null;
 
     /**
      * @var string $zoomAttribute Zomm attribute id
@@ -48,11 +50,13 @@ class LatLngFinder extends \yii\base\Widget
      * @var float $defaultLat Default Latitude for the map
      */
     public $defaultLat 		= null;
+    public $defaultLat2 		= null;
 
     /**
      * @var float $defaultLng Default Longitude for the map
      */
     public $defaultLng		= null;
+    public $defaultLng2		= null;
 
     /**
      * @var integer $defaultZoom Default initial Zoom for the map
@@ -80,14 +84,17 @@ class LatLngFinder extends \yii\base\Widget
     	{
     		$formName = strtolower($this->model->formName());
 
-    		$this->latAttribute 	= ( isset($this->latAttribute) ) ? $formName.'-'.$this->latAttribute : $formName.'-'.'lat';
-	    	$this->lngAttribute 	= ( isset($this->lngAttribute) ) ? $formName.'-'.$this->lngAttribute : $formName.'-'.'lng';
-	    	$this->zoomAttribute 	= ( isset($this->zoomAttribute) ) ? $formName.'-'.$this->zoomAttribute : $formName.'-'.'zoom';
+    		//$this->latAttribute 	= ( isset($this->latAttribute) ) ? $formName.'-'.$this->latAttribute : $formName.'-'.'lat';
+	    	//$this->lngAttribute 	= ( isset($this->lngAttribute) ) ? $formName.'-'.$this->lngAttribute : $formName.'-'.'lng';
+	    	//\yii\helpers\Html::
+               $this->latAttributeID 	= ( isset($this->latAttribute) ) ?\yii\helpers\Html::getInputId($this->model, $this->latAttribute):$formName.'-'.'lat';
+                $this->lngAttributeID 	= ( isset($this->lngAttribute) ) ?\yii\helpers\Html::getInputId($this->model, $this->lngAttribute):$formName.'-'.'lat'; 
+                $this->zoomAttribute 	= ( isset($this->zoomAttribute) ) ? $formName.'-'.$this->zoomAttribute : $formName.'-'.'zoom';
     	} 
     	else 
     	{
-	    	$this->latAttribute 	= ( isset($this->latAttribute) ) ? $this->latAttribute : 'lat';
-	    	$this->lngAttribute 	= ( isset($this->lngAttribute) ) ? $this->lngAttribute : 'lng';
+	    	$this->latAttributeID 	= ( isset($this->latAttribute) ) ? $this->latAttribute : 'lat';
+	    	$this->lngAttributeID 	= ( isset($this->lngAttribute) ) ? $this->lngAttribute : 'lng';
 	    	$this->zoomAttribute 	= ( isset($this->zoomAttribute) ) ? $this->zoomAttribute : 'zoom';
 		}
 
@@ -100,6 +107,14 @@ class LatLngFinder extends \yii\base\Widget
     	$this->enableZoomField	= ( isset($this->enableZoomField) ) ? ( ($this->enableZoomField==true) ? 1 : 0 ) : true;
 
     	$this->registerAssets();
+        $model2 = $this->model;
+        $this->defaultLat2 = $model2->{$this->latAttribute};
+        $this->defaultLng2 = $model2->{$this->lngAttribute};
+        if($model2->{$this->latAttribute} && $model2->{$this->lngAttribute}){
+            $this->defaultLat = $model2->{$this->latAttribute};
+            $this->defaultLng  = $model2->{$this->lngAttribute};
+            //echo "test|".$model2->{$this->latAttribute};
+        }
 
     }
 
@@ -108,6 +123,11 @@ class LatLngFinder extends \yii\base\Widget
 	 */
     public function run()
     {
+        if($this->defaultLat2 && $this->defaultLng2){
+        $defaultmarker = " var myLatLng = new google.maps.LatLng({lat: $this->defaultLat2, lng: $this->defaultLng2});placeMarker(myLatLng, map); ";
+        }else{
+            $defaultmarker = "";
+        }
     	$js = <<<SCRIPT
 
     		var map = null;
@@ -121,12 +141,17 @@ class LatLngFinder extends \yii\base\Widget
 		            center: {lat: $this->defaultLat, lng: $this->defaultLng},
 		            mapTypeId: google.maps.MapTypeId.ROADMAP
 		        };
+                        var lat_lng = {lat:$this->defaultLat, lng: $this->defaultLng};
+                        
 
 				map = new google.maps.Map(document.getElementById('$this->mapCanvasId'), mapOptions);
 
 				google.maps.event.addListener(map, 'click', function(e) {
 	            	placeMarker(e.latLng, map);
 	        	});
+                
+                        $defaultmarker
+                        
 				
 				google.maps.event.addListener(map, 'zoom_changed', function(e) {
 		            var zoom = map.getZoom();
@@ -148,8 +173,8 @@ class LatLngFinder extends \yii\base\Widget
 					var lng = position.lng();
 		            var zoom = map.getZoom();
 		            
-		            document.getElementById('$this->latAttribute').value = lat;
-		            document.getElementById('$this->lngAttribute').value = lng;
+		            document.getElementById('$this->latAttributeID').value = lat;
+		            document.getElementById('$this->lngAttributeID').value = lng;
 		            if (enalbeZoom) { document.getElementById('$this->zoomAttribute').value = zoom; }
 
 		            google.maps.event.addListener(marker, 'drag', function(e) {
@@ -157,8 +182,8 @@ class LatLngFinder extends \yii\base\Widget
 		                var lng = e.latLng.lng();
 		                var zoom = map.getZoom();
 		                
-			            document.getElementById('$this->latAttribute').value = lat;
-			            document.getElementById('$this->lngAttribute').value = lng;
+			            document.getElementById('$this->latAttributeID').value = lat;
+			            document.getElementById('$this->lngAttributeID').value = lng;
 			            if (enalbeZoom) { document.getElementById('$this->zoomAttribute').value = zoom; }
 		            });
 
@@ -180,6 +205,7 @@ SCRIPT;
     protected function registerAssets()
 	{
 		$view = $this->getView();
-		$view->registerJsFile('https://maps.googleapis.com/maps/api/js', ['position' => View::POS_HEAD]);
+                //https://maps.googleapis.com/maps/api/js?key=AIzaSyCt4ppFcHlHFryLsnklJL1BOws3vqJbMCE&amp;language=th&amp;version=3.1.18
+		$view->registerJsFile('https://maps.googleapis.com/maps/api/js?key=AIzaSyCt4ppFcHlHFryLsnklJL1BOws3vqJbMCE', ['position' => View::POS_HEAD]);
 	}
 }
